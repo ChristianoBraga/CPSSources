@@ -1,0 +1,107 @@
+(tmod RESERVOIR is
+	protecting POSRAT-TIME-DOMAIN . *** Dense time domain
+
+	sort Hose .
+	--- Drain rate and reservoir id
+	op hose : NNegRat Nat -> Hose [format(m! o)] .
+	
+	sort Reservoir ReservoirAttribute ReservoirAttributes .
+	subsort ReservoirAttribute < ReservoirAttributes .
+
+	op <_|_> : Nat ReservoirAttributes -> 
+		Reservoir [ctor format(b! o b! o b! o)] .
+	op _`,_ : ReservoirAttributes ReservoirAttributes -> 
+		ReservoirAttributes [ctor assoc comm] .
+    --- Reservoir thresholds
+	op thr: : NNegRat NNegRat -> ReservoirAttribute [ctor format(b! o)] .
+    --- Fluid column height
+	op hth:_ : NNegRat -> ReservoirAttribute [ctor format(b! o b!)] . 
+    --- Reservoir drain rate
+	op rte:_ : NNegRat -> ReservoirAttribute [ctor format(b! o b!)] .
+	subsort Hose Reservoir < System .	
+	op __ : System System -> System [ctor assoc comm] .
+
+	op fill : Reservoir NNegRat NNegRat -> Reservoir .
+	op drain : Reservoir NNegRat -> System .
+    op refill? : System -> Bool .
+    op refill-all? : System -> Bool .
+    op drain? : System -> Bool .
+		
+	vars N M : Nat .
+	vars L U Ln Un Lm Um Xn Xm Dn Dm W : NNegRat . 
+    var T : Time . var S : System . 
+	vars RA RAn RAm : ReservoirAttributes .
+	var R : Reservoir . var S : System . vars W N : Nat .
+
+	ceq refill?(< N | thr: (L, U), hth: Xn, RAn >) = true if Xn <= L .
+  	ceq refill?(< N | thr: (L, U), hth: Xn, RAn > S) = true if Xn <= L .
+	eq refill?(S) = false [owise] . 
+
+	ceq drain?(< N | thr: (L, U), hth: Xn, RAn >) = true if Xn >= U .
+  	ceq drain?(< N | thr: (L, U), hth: Xn, RAn > S) = true if Xn >= U .
+	eq drain?(S) = false [owise] . 
+  
+	eq refill-all?(R) = refill?(R) .
+    eq refill-all?(R S) = refill?(R) and refill-all?(S) .
+
+	eq fill(< N | thr: (L, U) , hth: Xn , rte: Dn >, W, T) = 
+		< N | thr: (L, U), hth: (Xn + ((W - Dn) * T)), rte: Dn  > .
+
+	eq drain(< N | thr: (L, U), hth: Xn, rte: Dn >, T) = 
+		< N | thr: (L, U), hth: sd(Xn,(Dn * T)), rte: Dn > .
+
+	eq drain(< N | thr: (L, U), hth: Xn, rte: Dn > S, T) = 
+		< N | thr: (L, U), hth: sd(Xn,(Dn * T)), rte: Dn > 
+		drain(S, T) .
+
+	crl [move-hose] : hose(W, N) < N | thr: (Ln, Un), hth: Xn, RAn >
+		< M | thr: (Lm, Um), hth: Xm, RAm > S =>
+		hose(W, M) < N | thr: (Ln, Un), hth: Xn, RAn >
+		< M | thr: (Lm, Um), hth: Xm, RAm > S
+	if (Xm <= Lm) and (N =/= M) and (Xn >= Ln) . 
+	
+	crl [tick] : {hose(W, N) < N | RAn > S} => 
+		{hose(W, N) fill(< N | RAn >, W, T) drain(S, T)} 
+	in time T if not refill?(S) [nonexec] .
+endtm)
+
+(tmod MODEL-CHECK-RESERVOIR is
+      including TIMED-MODEL-CHECKER .
+      protecting RESERVOIR .
+
+      ops macondo one-down : -> Prop [ctor] .
+	  op res : Nat -> Prop .
+	  
+	  var S : System . vars W N : Nat .
+
+      ceq {S} |= macondo = true if refill-all?(S) . 
+      ceq {S} |= one-down = true if refill?(S) . 
+	  
+	  eq {hose(W, N) S} |= res(N) = true .
+endtm)
+
+(tmod TEST is inc MODEL-CHECK-RESERVOIR . 
+	ops init1 init2 : -> System . 
+	eq init1 = hose(10, 0) < 0 | thr: (15, 50), hth: 30, rte: 5 >
+				< 1 | thr: (15, 50), hth: 30, rte: 5 > .
+	eq init2 = hose(10, 0) < 0 | thr: (15, 50), hth: 30, rte: 5 >
+				< 1 | thr: (15, 50), hth: 30, rte: 5 > 
+				< 2 | thr: (15, 50), hth: 30, rte: 5 > .
+endtm)
+
+(set tick def 1 .)
+
+(tsearch { init2 } =>* 
+		 { S:System } in time < 5 .)
+		 
+(tsearch { init2 } =>* { < 0 | hth: 45, RA0:ReservoirAttributes >
+	< 1 | hth: 10, RA1:ReservoirAttributes > 
+	< 2 | hth: 10, RA2:ReservoirAttributes > } in time < 100 .)
+
+(mc { init1 } |=t (~ [] <> macondo) in time < 5 .)
+
+(mc { init2 } |=t (~ [] <> macondo) in time < 5 .)
+
+(mc { init2 } |=t (~ [] <> one-down) in time < 5 .)
+
+(mc { init2 } |=t [] ~ <> one-down in time < 5 .)

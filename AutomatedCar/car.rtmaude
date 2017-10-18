@@ -1,69 +1,70 @@
-(tmod RESERVOIR is
+---Sample Car
+--- < 0 | X: 0 , Y: 0 , A: Pi , Lspeed: 5 , Aspeed: Pi , D: 0.1 , 
+---	  path: (x^2 - 3x + 5) , wheel: {left,right,straight} , 
+---	  engine: {on, off} >
+
+(tmod CAR is 
+
 	protecting POSRAT-TIME-DOMAIN . *** Dense time domain
 
-	sort Hose .
-	--- Drain rate and reservoir id
-	op hose : NNegRat Nat -> Hose [format(m! o)] .
-	
-	sort Reservoir ReservoirAttribute ReservoirAttributes .
-	subsort ReservoirAttribute < ReservoirAttributes .
+	sort Equation .
+	--- Need to discuss how to deal with function formulas here. 
 
-	op <_|_> : Nat ReservoirAttributes -> 
-		Reservoir [ctor format(b! o b! o b! o)] .
-	op _`,_ : ReservoirAttributes ReservoirAttributes -> 
-		ReservoirAttributes [ctor assoc comm] .
-    --- Reservoir thresholds
-	op thr: : NNegRat NNegRat -> ReservoirAttribute [ctor format(b! o)] .
-    --- Fluid column height
-	op hth:_ : NNegRat -> ReservoirAttribute [ctor format(b! o b!)] . 
-    --- Reservoir drain rate
-	op rte:_ : NNegRat -> ReservoirAttribute [ctor format(b! o b!)] .
-	subsort Hose Reservoir < System .	
+	--- To handle direction of the car steering
+	sort Wheel .
+	ops left right straight: -> Wheel [ctor] .
+	
+	--- To handle Engine on of off
+	sort Engine .
+	ops on off: -> Engine [ctor] .
+
+
+	sort Car CarAttribute CarAttributes .
+	subsort CarAttribute < CarAttributes .
+
+	op <_|_> : Nat CarAttributes -> Reservoir [ctor format(b! o b! o b! o)] .
+	op _`,_ : CarAttributes CarAttributes -> CarAttributes [ctor assoc comm] .
+	--- Car Postion, X, Y and Angle
+	op X:_ : Rat -> CarAttribute [ctor format(b! o)] .
+	op Y:_ : Rat -> CarAttribute [ctor format(b! o)] .
+	op A:_ : Rat -> CarAttribute [ctor format(b! o)] .
+	--- Car Speed in a straight line and angular
+	op Lspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
+	op Aspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .  
+	--- Car allowed distance from path
+	op D:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
+	--- Car Path equation
+	op path:_ : Equation -> CarAttribute [ctor format(b! o)] .
+	--- Car Wheel Direction
+	op wheel:_ : Wheel -> CarAttribute [ctor format(b! o)] .
+	--- Car on or off
+	op engine:_ : Engine -> CarAttribute [ctor format(b! o)] .
+
+	---Just in case we decide to have many cars in the future
+	subsort Car < System .	
 	op __ : System System -> System [ctor assoc comm] .
 
-	op fill : Reservoir NNegRat NNegRat -> Reservoir .
-	op drain : Reservoir NNegRat -> System .
-    op refill? : System -> Bool .
-    op refill-all? : System -> Bool .
-    op drain? : System -> Bool .
-		
-	vars N M : Nat .
-	vars L U Ln Un Lm Um Xn Xm Dn Dm W : NNegRat . 
-    var T : Time . var S : System . 
-	vars RA RAn RAm : ReservoirAttributes .
-	var R : Reservoir . var S : System . vars W N : Nat .
+	---Rules to turn the Engine. Unlike that we will use the turn off one
+	crl [off to on] 		? => ? if ? .
+	crl [on to off] 		? => ? if ? .
 
-	ceq refill?(< N | thr: (L, U), hth: Xn, RAn >) = true if Xn <= L .
-  	ceq refill?(< N | thr: (L, U), hth: Xn, RAn > S) = true if Xn <= L .
-	eq refill?(S) = false [owise] . 
 
-	ceq drain?(< N | thr: (L, U), hth: Xn, RAn >) = true if Xn >= U .
-  	ceq drain?(< N | thr: (L, U), hth: Xn, RAn > S) = true if Xn >= U .
-	eq drain?(S) = false [owise] . 
-  
-	eq refill-all?(R) = refill?(R) .
-    eq refill-all?(R S) = refill?(R) and refill-all?(S) .
+	---Rules to turn the wheel (these should be simple)
+	crl [straght to left] 		? => ? if ? .
+	crl [straight to right] 	? => ? if ? .
+	crl [left to straight]		? => ? if ? .
+	crl [right to straight]		? => ? if ? .
 
-	eq fill(< N | thr: (L, U) , hth: Xn , rte: Dn >, W, T) = 
-		< N | thr: (L, U), hth: (Xn + ((W - Dn) * T)), rte: Dn  > .
+	---Rules to tick time each wheel direction creates a progress rule
+	crl [tick-straight] 	? => ? in time T if ? [nonexec] .
+	crl [tick-left] 	? => ? in time T if ? [nonexec] .
+	crl [tick-right]	? => ? in time T if ? [nonexec] .
 
-	eq drain(< N | thr: (L, U), hth: Xn, rte: Dn >, T) = 
-		< N | thr: (L, U), hth: sd(Xn,(Dn * T)), rte: Dn > .
-
-	eq drain(< N | thr: (L, U), hth: Xn, rte: Dn > S, T) = 
-		< N | thr: (L, U), hth: sd(Xn,(Dn * T)), rte: Dn > 
-		drain(S, T) .
-
-	crl [move-hose] : hose(W, N) < N | thr: (Ln, Un), hth: Xn, RAn >
-		< M | thr: (Lm, Um), hth: Xm, RAm > S =>
-		hose(W, M) < N | thr: (Ln, Un), hth: Xn, RAn >
-		< M | thr: (Lm, Um), hth: Xm, RAm > S
-	if (Xm <= Lm) and (N =/= M) and (Xn >= Ln) . 
-	
-	crl [tick] : {hose(W, N) < N | RAn > S} => 
-		{hose(W, N) fill(< N | RAn >, W, T) drain(S, T)} 
-	in time T if not refill?(S) [nonexec] .
 endtm)
+
+eof
+
+---other useful stuff
 
 (tmod MODEL-CHECK-RESERVOIR is
       including TIMED-MODEL-CHECKER .

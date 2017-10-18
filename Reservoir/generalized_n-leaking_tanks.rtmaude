@@ -13,7 +13,7 @@
 	op _`,_ : ReservoirAttributes ReservoirAttributes -> 
 		ReservoirAttributes [ctor assoc comm] .
     --- Reservoir thresholds
-	op thr: : NNegRat NNegRat -> ReservoirAttribute [ctor format(b! o)] .
+	op thr:_ : NNegRat NNegRat -> ReservoirAttribute [ctor format(b! o)] .
     --- Fluid column height
 	op hth:_ : NNegRat -> ReservoirAttribute [ctor format(b! o b!)] . 
     --- Reservoir drain rate

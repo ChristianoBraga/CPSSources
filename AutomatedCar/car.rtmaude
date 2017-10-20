@@ -58,7 +58,7 @@
 
 
 	---Rules to turn the wheel (these should be simple)
-	crl [stragiht to left]  < N | wheel:straight, X:x1, Y:y1, D:d1 > => < N | wheel:left, X:x1, Y:y1, D:d1 > 
+	crl [straight to left]  < N | wheel:straight, X:x1, Y:y1, D:d1 > => < N | wheel:left, X:x1, Y:y1, D:d1 > 
 		if  ( y1 - path(x1) < -d1 ) . --- down or right of the curve 
 
 	crl [straight to right] < N | wheel:straight, X:x1, Y:y1, D:d1 > => < N | wheel:right, X:x1, Y:y1, D:d1 > 

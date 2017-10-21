@@ -51,25 +51,25 @@
 	---Rules to turn the Engine on and off. Unlike that we will use the turn off one
 	vars x1 y1 d1 dmax : Rat .
 	var N : Nat .
-	crl [off to on]	< N | engine:off, D:d1, MaxD:d2 > => < N | engine:on, D:d1, MaxD:d2 > 
-		if ( abs( d1 ) < MaxD ) , --- only start car if not off course
+	crl [off to on]	< N | engine:off, D:d1, MaxD:dmax > => < N | engine:on, D:d1, MaxD:dmax > 
+		if ( abs( d1 ) < dmax ) , --- only start car if not off course
 
-	crl [on to off] < N | engine:on, D:d1, MaxD:d2 > => < N | engine:off, D:d1, MaxD:d2 > 
-		if ( abs( d1 ) > MaxD ) . --- stop car if it goes really far off course
+	crl [on to off] < N | engine:on, D:d1, MaxD:dmax > => < N | engine:off, D:d1, MaxD:dmax > 
+		if ( abs( d1 ) > dmax ) . --- stop car if it goes really far off course
 
 
 	---Rules to turn the wheel (these should be simple)
-	crl [straight to left]  < N | wheel:straight, D:d1, MaxD:d2 > => < N | wheel:left, D:d1, MaxD:d2> 
-		if  ( d1 < -d2 ) . --- down or right of the curve 
+	crl [straight to left]  < N | wheel:straight, D:d1, MaxD:dmax > => < N | wheel:left, D:d1, MaxD:dmax> 
+		if  ( d1 < -dmax ) . --- down or right of the curve 
 
-	crl [straight to right] < N | wheel:straight, D:d1, MaxD:d2 > => < N | wheel:right, D:d1, MaxD:d2 > 
-		if  ( d1 > d2 ) . --- above or left of the curve 
+	crl [straight to right] < N | wheel:straight, D:d1, MaxD:dmax > => < N | wheel:right, D:d1, MaxD:dmax > 
+		if  ( d1 > dmax ) . --- above or left of the curve 
 
 	crl [left to straight] < N | wheel:left, X:x1, Y:y1, D:d1 > => < N | wheel:straight, X:x1, Y:y1, D:d1 > 
-		if  ( d1 < d2 ) . --- on curve or less then D above or left of teh curve
+		if  ( d1 < dmax ) . --- on curve or less then D above or left of teh curve
 
-	crl [right to straight] < N | wheel:left, D:d1, MaxD:d2 > => < N | wheel:straight, D:d1 , MaxD:d2 > 
-		if  ( d1 > -d2 ) . -- on curve or less then D below or right of thh curve
+	crl [right to straight] < N | wheel:left, D:d1, MaxD:dmax > => < N | wheel:straight, D:d1 , MaxD:dmax > 
+		if  ( d1 > -dmax ) . -- on curve or less then D below or right of thh curve
 
 	---Rules to tick time each wheel direction creates a progress rule
 	crl [tick-straight] 	? => ? in time T if ? [nonexec] .

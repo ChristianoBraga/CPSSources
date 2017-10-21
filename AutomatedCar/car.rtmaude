@@ -1,5 +1,5 @@
 ---Sample Car
---- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 ,
+--- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MAXD: 0.1
 ---	  wheel: {left,right,straight} , engine: {on, off} >
 
 (tmod CAR is 
@@ -23,12 +23,13 @@
 
 	op <_|_> : Nat CarAttributes -> Reservoir [ctor format(b! o b! o b! o)] .
 	op _`,_ : CarAttributes CarAttributes -> CarAttributes [ctor assoc comm] .
-	--- Car Postion, X, Y and Angle
+	--- Car Postion, X, Y and Angle and current distance to path
 	op X:_ : Rat -> CarAttribute [ctor format(b! o)] .
 	op Y:_ : Rat -> CarAttribute [ctor format(b! o)] .
 	op A:_ : Rat -> CarAttribute [ctor format(b! o)] .
-	--- Car allowed distance from path
 	op D:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
+	--- Car allowed distance from path
+	op MaxD:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
 	--- Car Speed in a straight line and angular
 	op Lspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
 	op Aspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .  
@@ -48,27 +49,27 @@
 	eq path(x) = X^3 + 3x^2 + x +5 . --- Define the path equation Here
 
 	---Rules to turn the Engine on and off. Unlike that we will use the turn off one
-	vars x1 y1 d1 : Rat .
+	vars x1 y1 d1 dmax : Rat .
 	var N : Nat .
-	crl [off to on]	< N | engine:off > => < N | engine:on, wheel:straight > 
-		if ( abs(y1 - path(x1) < d1 ) , --- only start car if not off course
+	crl [off to on]	< N | engine:off, D:d1, MaxD:d2 > => < N | engine:on, D:d1, MaxD:d2 > 
+		if ( abs( d1 ) < MaxD ) , --- only start car if not off course
 
-	crl [on to off] < N | engine:on, X:x1, Y:y1, D:d1 > => < N | engine:off, X:x1, Y:y1, D:d1 > 
-		if ( abs( y1 - path(x1) ) > 3*d1 ) . --- stop car if it goes really far off course
+	crl [on to off] < N | engine:on, D:d1, MaxD:d2 > => < N | engine:off, D:d1, MaxD:d2 > 
+		if ( abs( d1 ) > MaxD ) . --- stop car if it goes really far off course
 
 
 	---Rules to turn the wheel (these should be simple)
-	crl [straight to left]  < N | wheel:straight, X:x1, Y:y1, D:d1 > => < N | wheel:left, X:x1, Y:y1, D:d1 > 
-		if  ( y1 - path(x1) < -d1 ) . --- down or right of the curve 
+	crl [straight to left]  < N | wheel:straight, D:d1, MaxD:d2 > => < N | wheel:left, D:d1, MaxD:d2> 
+		if  ( d1 < -d2 ) . --- down or right of the curve 
 
-	crl [straight to right] < N | wheel:straight, X:x1, Y:y1, D:d1 > => < N | wheel:right, X:x1, Y:y1, D:d1 > 
-		if  ( y1 - path(x1) > d1 ) . --- above or left of the curve 
+	crl [straight to right] < N | wheel:straight, D:d1, MaxD:d2 > => < N | wheel:right, D:d1, MaxD:d2 > 
+		if  ( d1 > d2 ) . --- above or left of the curve 
 
 	crl [left to straight] < N | wheel:left, X:x1, Y:y1, D:d1 > => < N | wheel:straight, X:x1, Y:y1, D:d1 > 
-		if  ( y1 - path(x1) < d1 ) . --- on curve or less then D above or left of teh curve
+		if  ( d1 < d2 ) . --- on curve or less then D above or left of teh curve
 
-	crl [right to straight] < N | wheel:left, X:x1, Y:y1, D:d1 > => < N | wheel:straight, X:x1, Y:y1, D:d1 > 
-		if  ( y1 - path(x1) > -d1 ) . -- on curve or less then D below or right of thh curve
+	crl [right to straight] < N | wheel:left, D:d1, MaxD:d2 > => < N | wheel:straight, D:d1 , MaxD:d2 > 
+		if  ( d1 > -d2 ) . -- on curve or less then D below or right of thh curve
 
 	---Rules to tick time each wheel direction creates a progress rule
 	crl [tick-straight] 	? => ? in time T if ? [nonexec] .

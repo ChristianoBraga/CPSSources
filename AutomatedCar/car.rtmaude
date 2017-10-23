@@ -1,6 +1,10 @@
 ---Sample Car
---- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MAXD: 0.1
+--- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MaxD: 0.1
+
 ---	  wheel: {left,right,straight} , engine: {on, off} >
+---	Straight move: Full Speed
+---	Turns move: 1/2 Speed and turn Aspeed Rads
+---	If the car goes to far off course (50 * MAXD) the engine turs off
 
 (tmod CAR is 
 

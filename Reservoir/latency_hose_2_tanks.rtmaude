@@ -3,7 +3,7 @@
 	ops w v1 v2 r1 r2 : -> NNegRat .
 	
 	sort Hose .
-	ops left right movingleft movingright: -> Hose [ctor] .
+	ops left right movingleft movingright : -> Hose [ctor] .
 	op _`,_`,_ : Hose NNegRat NNegRat -> System [ctor] .
 
 	vars x1 x2 : NNegRat .
@@ -27,13 +27,13 @@
 		in time R
 	if x2 > r2 [nonexec] .
 	
-	rl [complete-move-right] :
-		{moving-right, x1, x2} => {right, x1 - (v1 * R), 
-		x2 - ( - v2 * R)}
+	rl [tick-complete-move-right] :
+		{movingright, x1, x2} => {right, x1 - (v1 * R), 
+		x2 - ( v2 * R)}
 		in time R [nonexec] .
 		
-	rl [complete-move-left] :
-		{moving-left, x1, x2} => {left, x1 - (v1 * R), 
+	rl [tick-complete-move-left] :
+		{movingleft, x1, x2} => {left, x1 - (v1 * R), 
 		x2 - ( - v2 * R)}
 		in time R [nonexec] .
 endtm)

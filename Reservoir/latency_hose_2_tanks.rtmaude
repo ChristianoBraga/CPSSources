@@ -34,7 +34,7 @@
 		
 	rl [tick-complete-move-left] :
 		{movingleft, x1, x2} => {left, x1 - (v1 * R), 
-		x2 - ( - v2 * R)}
+		x2 - ( v2 * R)}
 		in time R [nonexec] .
 endtm)
 

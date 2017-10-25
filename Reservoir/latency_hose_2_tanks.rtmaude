@@ -43,3 +43,9 @@ endtm)
 	eq v1 = 5 . eq v2 = 5 .
 	eq r1 = 15 . eq r2 = 15 .
 endtm)
+
+(set tick def 1 .)
+
+(tsearch {left, 30, 30} =>* { S:System } in time < 5 .)
+		 
+

@@ -1,6 +1,5 @@
 ---Sample Car
---- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MaxD: 0.1
-
+--- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MaxD: 0.1,
 ---	  wheel: {left,right,straight} , engine: {on, off} >
 ---	Straight move: Full Speed
 ---	Turns move: 1/2 Speed and turn Aspeed Rads
@@ -9,9 +8,6 @@
 (tmod CAR is 
 
 	protecting POSRAT-TIME-DOMAIN . *** Dense time domain
-
-	sort Equation .
-	--- Need to discuss how to deal with function formulas here. 
 
 	--- To handle direction of the car steering
 	sort Wheel .
@@ -49,12 +45,10 @@
 
 	--- Car Path equation
 	op path : Rat -> Rat .
-	var x : Rat
-	eq path(x) = X^3 - 153x^2 + x . --- Define the path equation Here
-
+	--- defined in the test module
 
 	---Rules to turn the Engine on and off. Unlike that we will use the turn off one
-	vars d1 dmax : Rat .
+	vars d1 dmax x : Rat .
 	var N : Nat .
 	crl [off to on]	< N | engine:off, D:d1, MaxD:dmax > => 
 			< N | engine:on, D:d1, MaxD:dmax > 
@@ -86,17 +80,17 @@
 	---Rules to tick time each wheel direction creates a progress rule
 	var R : Time .
 	var x1 y1 a1 ls1 as1 : Rat
-	crl [tick-straight] 	< N | wheel:straight, D:d1, MaxD:dmax, 
+	crl [tick-straight] 	< N | wheel:straight, engine:on, D:d1, MaxD:dmax, 
 					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > => 
 				< N | wheel:straight, engine: on, MaxD:dmax, 
 					D:(y1 + ls1 * (sin(a1)) - 
 					path((x1 + ls1 * cos(a1))), 
 					X:(x1 + ls1 * cos(a1)), 
-					Y:(y1 + ls1 * (sin(a1)), 
+					Y:(y1 + ls1 * sin(a1)), 
 					A:a1, Lspeed:ls1, Aspeed:as1 >
 				in time R if ( d1 =< dmax and d1 >= -dmax ) [nonexec] .
 
-	crl [tick-left] 	< N | wheel:left, D:d1, MaxD:dmax, 
+	crl [tick-left] 	< N | wheel:left, engine:on, D:d1, MaxD:dmax, 
 					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > =>
 				< N | wheel:left, engine:on, MaxD:dmax, 
 					D:(y1 - ls1 * sin(a1 + as1)/2) - 
@@ -106,7 +100,7 @@
 					A:(a1 + as1), Lspeed:ls1, Aspeed: as1 > => 
 				in time R if (d1 < -dmax)  [nonexec] .
 
-	crl [tick-right]	< N | wheel:right, D:d1, MaxD:dmax, 
+	crl [tick-right]	< N | wheel:right, engine:on, D:d1, MaxD:dmax, 
 					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > =>
 				< N | wheel:right, engine:on, MaxD:dmax, 
 					D:(y1 + ls1 * sin(a1 - as1)/2) - 
@@ -118,47 +112,16 @@
 
 endtm)
 
-eof
+(tmod TEST 
+	is including CAR .
+	op init1  : -> System . 
+	eq init1 = < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MaxD: 0.1,
+			 wheel:straight, engine:off > .
 
----other useful stuff
-
-(tmod MODEL-CHECK-RESERVOIR is
-      including TIMED-MODEL-CHECKER .
-      protecting RESERVOIR .
-
-      ops macondo one-down : -> Prop [ctor] .
-	  op res : Nat -> Prop .
-	  
-	  var S : System . vars W N : Nat .
-
-      ceq {S} |= macondo = true if refill-all?(S) . 
-      ceq {S} |= one-down = true if refill?(S) . 
-	  
-	  eq {hose(W, N) S} |= res(N) = true .
-endtm)
-
-(tmod TEST is inc MODEL-CHECK-RESERVOIR . 
-	ops init1 init2 : -> System . 
-	eq init1 = hose(10, 0) < 0 | thr: (15, 50), hth: 30, rte: 5 >
-				< 1 | thr: (15, 50), hth: 30, rte: 5 > .
-	eq init2 = hose(10, 0) < 0 | thr: (15, 50), hth: 30, rte: 5 >
-				< 1 | thr: (15, 50), hth: 30, rte: 5 > 
-				< 2 | thr: (15, 50), hth: 30, rte: 5 > .
-endtm)
+	--- Equation for the Path
+	eq path(x) = x^3 - 153x^2 + x . --- Define the path equation Here
+)
 
 (set tick def 1 .)
 
-(tsearch { init2 } =>* 
-		 { S:System } in time < 5 .)
-		 
-(tsearch { init2 } =>* { < 0 | hth: 45, RA0:ReservoirAttributes >
-	< 1 | hth: 10, RA1:ReservoirAttributes > 
-	< 2 | hth: 10, RA2:ReservoirAttributes > } in time < 100 .)
-
-(mc { init1 } |=t (~ [] <> macondo) in time < 5 .)
-
-(mc { init2 } |=t (~ [] <> macondo) in time < 5 .)
-
-(mc { init2 } |=t (~ [] <> one-down) in time < 5 .)
-
-(mc { init2 } |=t [] ~ <> one-down in time < 5 .)
+(tsearch {init1} =>* { S:System } in time < 5 .)

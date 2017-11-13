@@ -70,8 +70,7 @@
 	crl [right-to-straight] : < N | wheel: left, D: d1, MaxD: dmax > =>
  			< N | wheel: straight, D: d1 , MaxD: dmax >
 		if  ( d1 >= ( - dmax ) ) . --- on curve or less then D below or right of the curve
-endtm)
-eof
+
 
 	---Rules to tick time each wheel direction creates a progress rule
 	var R : Time .
@@ -107,6 +106,8 @@ eof
 		in time R if (d1 > dmax)  [nonexec] .
 
 endtm)
+
+eof
 
 (tmod TEST
 	is including CAR .

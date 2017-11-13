@@ -1,27 +1,24 @@
 ---Sample Car
 --- < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MaxD: 0.1,
----	  wheel: {left,right,straight} , engine: {on, off} >
----	Straight move: Full Speed
----	Turns move: 1/2 Speed and turn Aspeed Rads
----	If the car goes to far off course (50 * MAXD) the engine turs off
+---  wheel: {left,right,straight} , engine: {on, off} >
+--- Straight move: Full Speed
+--- Turns move: 1/2 Speed and turn Aspeed Rads
+--- If the car goes to far off course (50 * MAXD) the engine turs off
 
-(tmod CAR is 
-
+(tmod CAR is
 	protecting POSRAT-TIME-DOMAIN . *** Dense time domain
 
 	--- To handle direction of the car steering
 	sort Wheel .
 	ops left right straight : -> Wheel [ctor] .
-	
 	--- To handle Engine on of off
 	sort Engine .
 	ops on off : -> Engine [ctor] .
 
-
 	sort Car CarAttribute CarAttributes .
 	subsort CarAttribute < CarAttributes .
 
-	op <_|_> : Nat CarAttributes -> Reservoir [ctor format(b! o b! o b! o)] .
+	op <_|_> : Nat CarAttributes -> Car [ctor format(b! o b! o b! o)] .
 	op _`,_ : CarAttributes CarAttributes -> CarAttributes [ctor assoc comm] .
 	--- Car Postion, X, Y and Angle and current distance to path
 	op X:_ : Rat -> CarAttribute [ctor format(b! o)] .
@@ -32,16 +29,15 @@
 	op MaxD:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
 	--- Car Speed in a straight line and angular
 	op Lspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
-	op Aspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .  
+	op Aspeed:_ : Rat -> CarAttribute [ctor format(b! o b!)] .
 	--- Car Wheel Direction
 	op wheel:_ : Wheel -> CarAttribute [ctor format(b! o)] .
 	--- Car on or off
 	op engine:_ : Engine -> CarAttribute [ctor format(b! o)] .
 
 	---Just in case we decide to have many cars in the future
-	subsort Car < System .	
+	subsort Car < System .
 	op __ : System System -> System [ctor assoc comm] .
-
 
 	--- Car Path equation
 	op path : Rat -> Rat .
@@ -50,76 +46,76 @@
 	---Rules to turn the Engine on and off. Unlike that we will use the turn off one
 	vars d1 dmax x : Rat .
 	var N : Nat .
-	crl [off to on]	< N | engine:off, D:d1, MaxD:dmax > => 
-			< N | engine:on, D:d1, MaxD:dmax > 
-		if ( abs( d1 ) < dmax ) , --- only start car if not off course
+	crl [off-to-on] : < N | engine: off, D: d1, MaxD: dmax > =>
+ 			< N | engine: on, D: d1, MaxD: dmax >
+		if ( abs( d1 ) < dmax ) . --- only start car if not off course
 
-	crl [on to off] < N | engine:on, D:d1, MaxD:dmax > => 
-			< N | engine:off, D:d1, MaxD:dmax > 
+	crl [on-to-off] : < N | engine: on, D: d1, MaxD: dmax > =>
+ 			< N | engine: off, D: d1, MaxD: dmax >
 		if ( abs( d1 ) > 50 * dmax ) . --- stop car if it goes really far off course
 
-
 	---Rules to turn the wheel (these should be simple)
-	crl [straight to left]  < N | wheel:straight, D:d1, MaxD:dmax > => 
-				< N | wheel:left, D:d1, MaxD:dmax> 
-		if  ( d1 < -dmax ) . --- down or right of the curve 
+	crl [straight-to-left] : < N | wheel: straight, D: d1, MaxD: dmax > =>
+        			< N | wheel: left, D: d1, MaxD: dmax >
+		if  ( d1 < - dmax ) . --- down or right of the curve
 
-	crl [straight to right] < N | wheel:straight, D:d1, MaxD:dmax > => 
-				< N | wheel:right, D:d1, MaxD:dmax > 
-		if  ( d1 > dmax ) . --- above or left of the curve 
+	crl [straight-to-right] : < N | wheel: straight, D: d1, MaxD: dmax > =>
+ 				< N | wheel: right, D: d1, MaxD: dmax >
+		if  ( d1 > dmax ) . --- above or left of the curve
 
-	crl [left to straight] 	< N | wheel:left, D:d1, MaxD:dmax > => 
-				< N | wheel:straight, D:d1, MaxD:dmax > 
-		if  ( d1 =< dmax ) . --- on curve or less then D above or left of teh curve
+	crl [left-to-straight] : < N | wheel: left, D: d1, MaxD: dmax > =>
+			< N | wheel: straight, D: d1, MaxD: dmax >
+		if  ( d1 <= dmax ) . --- on curve or less then D above or left of the curve
 
-	crl [right to straight] < N | wheel:left, D:d1, MaxD:dmax > => 
-				< N | wheel:straight, D:d1 , MaxD:dmax > 
-		if  ( d1 >= -dmax ) . -- on curve or less then D below or right of thh curve
-
+	crl [right-to-straight] : < N | wheel: left, D: d1, MaxD: dmax > =>
+ 			< N | wheel: straight, D: d1 , MaxD: dmax >
+		if  ( d1 >= ( - dmax ) ) . -- on curve or less then D below or right of the curve
+endtm)
+eof
 
 	---Rules to tick time each wheel direction creates a progress rule
 	var R : Time .
-	var x1 y1 a1 ls1 as1 : Rat .
-	crl [tick-straight] 	< N | wheel:straight, engine:on, D:d1, MaxD:dmax, 
-					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > => 
-				< N | wheel:straight, engine: on, MaxD:dmax, 
-					D:(y1 + ls1 * (sin(a1)) - 
-					path((x1 + ls1 * cos(a1))), 
-					X:(x1 + ls1 * cos(a1)), 
-					Y:(y1 + ls1 * sin(a1)), 
-					A:a1, Lspeed:ls1, Aspeed:as1 >
-				in time R if ( d1 =< dmax and d1 >= -dmax ) [nonexec] .
+	vars x1 y1 a1 ls1 as1 : Rat .
+	crl [tick-straight] : < N | wheel: straight, engine: on, D: d1, MaxD: dmax,
+				X: x1, Y: y1, A: a1, Lspeed: ls1, Aspeed: as1 > =>
+				< N | wheel: straight, engine: on, MaxD: dmax,
+				D: (y1 + ls1 * (sin(a1)) -
+  				path((x1 + ls1 * cos(a1))),
+				X: (x1 + ls1 * cos(a1)),
+				Y: (y1 + ls1 * sin(a1)),
+				A: a1, Lspeed:ls1, Aspeed:as1 >
+		in time R if ( d1 =< dmax and d1 >= - dmax ) [nonexec] .
 
-	crl [tick-left] 	< N | wheel:left, engine:on, D:d1, MaxD:dmax, 
-					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > =>
-				< N | wheel:left, engine:on, MaxD:dmax, 
-					D:(y1 - ls1 * sin(a1 + as1)/2) - 
-					path((x1 - ls1 * cos(a1 + as1)/2)), 
-					X:(x1 - ls1 * cos(a1 + as1)/2), 
-					Y:(y1 - ls1 * sin(a1 + as1)/2), 
-					A:(a1 + as1), Lspeed:ls1, Aspeed: as1 > 
-				in time R if (d1 < -dmax)  [nonexec] .
+	crl [tick-left] : < N | wheel: left, engine: on, D: d1, MaxD: dmax,
+			X: x1, Y: y1, A: a1, Lspeed: ls1, Aspeed: as1 > =>
+			< N | wheel: left, engine: on, MaxD: dmax,
+			D: (y1 - ls1 * sin(a1 + as1)/2) -
+			path((x1 - ls1 * cos(a1 + as1)/2)),
+			X: (x1 - ls1 * cos(a1 + as1)/2),
+			Y: (y1 - ls1 * sin(a1 + as1)/2),
+			A: (a1 + as1), Lspeed:ls1, Aspeed: as1 >
+		in time R if (d1 < -dmax)  [nonexec] .
 
-	crl [tick-right]	< N | wheel:right, engine:on, D:d1, MaxD:dmax, 
-					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > =>
-				< N | wheel:right, engine:on, MaxD:dmax, 
-					D:(y1 + ls1 * sin(a1 - as1)/2) - 
-					path((x1 + ls1 * cos(a1 - as1)/2)), 
-					X:(x1 + ls1 * cos(a1 - as1)/2), 
-					Y:(y1 + ls1 * sin(a1 - as1)/2), 
-					A:(a1 - as1), Lspeed:ls1, Aspeed: as1 > 
-				in time R if (d1 > dmax)  [nonexec] .
+	crl [tick-right] : < N | wheel: right, engine: on, D: d1, MaxD: dmax,
+			X: x1, Y: y1, A: a1, Lspeed: ls1, Aspeed: as1 > =>
+			< N | wheel: right, engine: on, MaxD: dmax,
+			D: (y1 + ls1 * sin(a1 - as1)/2) -
+			path((x1 + ls1 * cos(a1 - as1)/2)),
+			X: (x1 + ls1 * cos(a1 - as1)/2),
+			Y: (y1 + ls1 * sin(a1 - as1)/2),
+			A: (a1 - as1), Lspeed: ls1, Aspeed: as1 >
+		in time R if (d1 > dmax)  [nonexec] .
 
 endtm)
 
-(tmod TEST 
+(tmod TEST
 	is including CAR .
-	op init1  : -> System . 
-	eq init1 = < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: 3.14/4 , MaxD: 0.1,
-			 wheel:straight, engine:off > .
+	op init1  : -> System .
+	eq init1 = < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed:3.14/4 , MaxD: 0.1,
+			wheel: straight, engine: off > .
 
 	--- Equation for the Path
-	eq path(x) = x^3 - 153x^2 + x . 
+	eq path(x) = x^3 - 153x^2 + x .
 endtm)
 
 (set tick def 1 .)

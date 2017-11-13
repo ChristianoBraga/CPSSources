@@ -69,7 +69,7 @@
 
 	crl [right-to-straight] : < N | wheel: left, D: d1, MaxD: dmax > =>
  			< N | wheel: straight, D: d1 , MaxD: dmax >
-		if  ( d1 >= ( - dmax ) ) . -- on curve or less then D below or right of the curve
+		if  ( d1 >= ( - dmax ) ) . --- on curve or less then D below or right of the curve
 endtm)
 eof
 

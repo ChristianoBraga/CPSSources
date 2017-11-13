@@ -20,7 +20,7 @@
 
 	sort Car CarAttribute CarAttributes .
 	subsort CarAttribute < CarAttributes .
-(
+
 	op <_|_> : Nat CarAttributes -> Reservoir [ctor format(b! o b! o b! o)] .
 	op _`,_ : CarAttributes CarAttributes -> CarAttributes [ctor assoc comm] .
 	--- Car Postion, X, Y and Angle and current distance to path

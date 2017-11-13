@@ -20,7 +20,7 @@
 
 	sort Car CarAttribute CarAttributes .
 	subsort CarAttribute < CarAttributes .
-
+(
 	op <_|_> : Nat CarAttributes -> Reservoir [ctor format(b! o b! o b! o)] .
 	op _`,_ : CarAttributes CarAttributes -> CarAttributes [ctor assoc comm] .
 	--- Car Postion, X, Y and Angle and current distance to path
@@ -115,12 +115,12 @@ endtm)
 (tmod TEST 
 	is including CAR .
 	op init1  : -> System . 
-	eq init1 = < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: Pi/4 , MaxD: 0.1,
+	eq init1 = < 0 | X: 0 , Y: 0 , A: 0 , D: 0.1 , Lspeed: 5 , Aspeed: 3.14/4 , MaxD: 0.1,
 			 wheel:straight, engine:off > .
 
 	--- Equation for the Path
-	eq path(x) = x^3 - 153x^2 + x . --- Define the path equation Here
-)
+	eq path(x) = x^3 - 153x^2 + x . 
+endtm)
 
 (set tick def 1 .)
 

@@ -1,0 +1,165 @@
+-- Same code, no Real variables type. All replaced with limited range
+-- SMV Model 2 Reservatorios
+--
+-- Andre Metelo
+-- Logica e Especificacao 2017.2
+-- Prof Bruno
+--
+-- Base problem:
+-- 	* 2 tanks that are leaking at a constant Rate
+-- 	* 1 hose that can be move between then instantaneously and
+-- 	  add water at constant Rate
+--	* Control system that moves the hose from one reservoir
+--	  to the other when the water level reaches a pre-defined
+--	  level.
+--
+-- Data structure
+--	* Hose position -> Natural Number pointing to a tank
+--	* Hose intake -> Rational Number for the water added
+--	* Tank paramenters: 
+--		* Identifier -> Rational Number
+--		* Water level -> Rational Number
+--		* Drain Rate -> Rational Number
+--		* Water Threshold (Lower and Higher)
+--
+-- Execution details:
+--      * System must run as a bounded model (bmc)
+--      * For interactive mode:
+--          * go_bmc
+--          * bmc_pick_state -i
+--          * bmc_simulate -k #ofsteps
+--
+--      * For direct exucation and validation of the LTL Specs:
+--            * nuxmv -bmc [filename.smv]
+
+--Modules containing the data structure for hose and tanks
+MODULE HOSE(volume, position)
+	VAR
+		fillrate : 0..50;
+		currenttank : 1..2;
+	ASSIGN
+		init(fillrate) := volume;
+		init(currenttank) := position;
+
+MODULE TANK(level, drain, Llimit, Hlimit)
+	VAR
+		waterlevel : 0..50;
+		lowerlimit : 0..50;
+		highlimit : 0..50;
+		drainrate : 0..50;
+	ASSIGN
+		init(waterlevel) := level;
+		init(drainrate) := drain;
+		init(lowerlimit) := Llimit;
+		init(highlimit) := Hlimit;
+
+
+-- Module with the hose movement logic
+MODULE MOVEHOSE(hose, tank1, tank2)
+	DEFINE
+		gotoleft := (tank1.waterlevel <= tank1.lowerlimit);
+		gotoright := (tank2.waterlevel <= tank2.lowerlimit);
+	
+	ASSIGN
+		next(hose.currenttank):= case
+			gotoleft & gotoright : hose.currenttank;
+			!gotoleft & !gotoright : hose.currenttank;
+			gotoleft : 1; 
+			gotoright : 2;
+			TRUE : hose.currenttank;
+        	esac;
+		next(hose.fillrate):= hose.fillrate;
+	
+-- Module with water drain and refill logic
+MODULE TICK(hose, tank1, tank2, ticktime, tick_limit)
+	DEFINE
+		OKTickleft := tank1.waterlevel >= tank1.lowerlimit;
+		OKTickright := tank2.waterlevel >= tank2.lowerlimit;
+		HoseLeft := hose.currenttank = 1;
+		HoseRight := hose.currenttank = 2;
+		-- Added to create a controlled clock
+		OKTime := ticktime < tick_limit;
+		-- Added to force Number between 0 and high tresholds for waterlevel in tanks
+		empty_left := tank1.waterlevel - tank1.drainrate < 0;
+		full_left := tank1.waterlevel + hose.fillrate - tank1.drainrate > tank1.highlimit;
+		empty_right := tank2.waterlevel - tank2.drainrate < 0;
+		full_right := tank2.waterlevel + hose.fillrate - tank2.drainrate > tank2.highlimit;
+        
+	ASSIGN
+		next(tank1.waterlevel):= case
+			--Hose on Left for Left Tank			
+			(OKTickright & HoseLeft & OKTime & !full_left) : tank1.waterlevel + hose.fillrate - tank1.drainrate;
+			(OKTickright & HoseLeft & OKTime & full_right) : tank1.highlimit;
+			--Hose on Right for Left Tank			
+			(OKTickleft & HoseRight & OKTime & !empty_left) : tank1.waterlevel - tank1.drainrate;
+			(OKTickleft & HoseRight & OKTime & empty_left) : 0;
+			TRUE : tank1.waterlevel;
+		esac;
+		
+		--To not mess up other fields in the Tank 1 variable
+		next(tank1.drainrate) := tank1.drainrate;
+		next(tank1.lowerlimit) := tank1.lowerlimit;
+		next(tank1.highlimit) := tank1.highlimit;
+
+		next(tank2.waterlevel) := case
+			--Hose on Left for Right Tank
+			(OKTickright & HoseLeft & OKTime & !empty_right) : tank2.waterlevel - tank2.drainrate;
+			(OKTickright & HoseLeft & OKTime & empty_right) : 0;
+			--Hose on Right for Right Tank
+			(OKTickleft & HoseRight & OKTime & !full_right) : tank2.waterlevel + hose.fillrate - tank2.drainrate;
+			(OKTickleft & HoseRight & OKTime & full_right) : tank2.highlimit;
+			TRUE : tank2.waterlevel;
+		esac;
+
+		--To not mess up other fields in the Tank2 variable
+		next(tank2.drainrate) := tank2.drainrate;
+		next(tank2.lowerlimit) := tank2.lowerlimit;
+		next(tank2.highlimit) := tank2.highlimit;
+
+
+		next(ticktime) := case
+			((OKTickleft & HoseRight) | (OKTickright & HoseLeft)) & OKTime : ticktime + 1; 
+			TRUE : ticktime;
+	   	esac;
+		next(tick_limit) := tick_limit;
+	    
+-- Main executuion module
+MODULE main
+	VAR
+		--Control time passage and allow for a time limit
+		time : 0..50;
+		time_limit: 0.. 50;
+	    
+		tank_start_volume : 0..50;
+		tank_leak_rate : 0..50;
+		tank_Lthreshold : 0..50;
+		tank_Hthreshold : 0..50;
+	    
+		hose_refill : 0..50;
+		hose_position : 1..2;
+	    
+        	tank_left : TANK(tank_start_volume, tank_leak_rate, tank_Lthreshold, tank_Hthreshold);
+        	tank_right : TANK(tank_start_volume, tank_leak_rate, tank_Lthreshold, tank_Hthreshold);
+        	live_hose : HOSE(hose_refill, hose_position);
+        
+		tick_time : TICK(live_hose, tank_left, tank_right, time, time_limit);
+
+ 		move_hose : MOVEHOSE(live_hose, tank_left, tank_right);
+        
+	ASSIGN
+		init(time) := 0;
+		init(time_limit) := 20;
+	        init(tank_start_volume) := 30;
+        	init(tank_leak_rate) := 5;
+        	init(tank_Lthreshold) := 15;
+        	init(tank_Hthreshold) := 50;
+        	init(hose_refill) := 10;
+        	init(hose_position) := 1;
+    
+	LTLSPEC
+		-- Test if both go below the treshhold at the same time
+		G !(tank_left.waterlevel < tank_left.lowerlimit & tank_right.waterlevel < tank_right.lowerlimit);
+
+	LTLSPEC
+		-- Test if at least one tank goes below the treshold during execution
+		G !(tank_left.waterlevel < tank_left.lowerlimit | tank_right.waterlevel < tank_right.lowerlimit);

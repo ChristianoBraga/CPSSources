@@ -79,7 +79,7 @@
 
 	---Rules to tick time each wheel direction creates a progress rule
 	var R : Time .
-	var x1 y1 a1 ls1 as1 : Rat
+	var x1 y1 a1 ls1 as1 : Rat .
 	crl [tick-straight] 	< N | wheel:straight, engine:on, D:d1, MaxD:dmax, 
 					X:x1, Y:y1, A:a1, Lspeed:ls1, Aspeed:as1 > => 
 				< N | wheel:straight, engine: on, MaxD:dmax, 

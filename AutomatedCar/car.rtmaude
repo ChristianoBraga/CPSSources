@@ -11,11 +11,11 @@
 
 	--- To handle direction of the car steering
 	sort Wheel .
-	ops left right straight: -> Wheel [ctor] .
+	ops left right straight : -> Wheel [ctor] .
 	
 	--- To handle Engine on of off
 	sort Engine .
-	ops on off: -> Engine [ctor] .
+	ops on off : -> Engine [ctor] .
 
 
 	sort Car CarAttribute CarAttributes .
@@ -97,7 +97,7 @@
 					path((x1 - ls1 * cos(a1 + as1)/2)), 
 					X:(x1 - ls1 * cos(a1 + as1)/2), 
 					Y:(y1 - ls1 * sin(a1 + as1)/2), 
-					A:(a1 + as1), Lspeed:ls1, Aspeed: as1 > => 
+					A:(a1 + as1), Lspeed:ls1, Aspeed: as1 > 
 				in time R if (d1 < -dmax)  [nonexec] .
 
 	crl [tick-right]	< N | wheel:right, engine:on, D:d1, MaxD:dmax, 
@@ -107,7 +107,7 @@
 					path((x1 + ls1 * cos(a1 - as1)/2)), 
 					X:(x1 + ls1 * cos(a1 - as1)/2), 
 					Y:(y1 + ls1 * sin(a1 - as1)/2), 
-					A:(a1 - as1), Lspeed:ls1, Aspeed: as1 > => 
+					A:(a1 - as1), Lspeed:ls1, Aspeed: as1 > 
 				in time R if (d1 > dmax)  [nonexec] .
 
 endtm)
